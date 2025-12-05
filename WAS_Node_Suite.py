@@ -7390,16 +7390,16 @@ class WAS_Image_Save:
                 "show_history_by_prefix": (["true", "false"],),
                 "embed_workflow": (["true", "false"],),
                 "show_previews": (["true", "false"],),
-                "watermark": (["true", "false"],),
+                # "watermark": (["true", "false"],),
             },
-            "optional": {
-                "watermark_text": ("STRING", {"default": "WAS Node Suite", "multiline": False}),
-                "watermark_font_size": ("INT", {"default": 36, "min": 1, "max": 256, "step": 1}),
-                "watermark_position": (["bottom-right", "top-left", "top-right", "bottom-left", "center"],),
-                "watermark_rotation": ("INT", {"default": 0, "min": -360, "max": 360, "step": 1}),
-                "watermark_opacity": ("INT", {"default": 50, "min": 0, "max": 100, "step": 1}),
-                "watermark_margin": ("INT", {"default": 10, "min": 0, "max": 512, "step": 1}),
-            },
+            # "optional": {
+            #     "watermark_text": ("STRING", {"default": "WAS Node Suite", "multiline": False}),
+            #     "watermark_font_size": ("INT", {"default": 36, "min": 1, "max": 256, "step": 1}),
+            #     "watermark_position": (["bottom-right", "top-left", "top-right", "bottom-left", "center"],),
+            #     "watermark_rotation": ("INT", {"default": 0, "min": -360, "max": 360, "step": 1}),
+            #     "watermark_opacity": ("INT", {"default": 50, "min": 0, "max": 100, "step": 1}),
+            #     "watermark_margin": ("INT", {"default": 10, "min": 0, "max": 512, "step": 1}),
+            # },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             },
@@ -7419,8 +7419,8 @@ class WAS_Image_Save:
                         overwrite_mode='false', filename_number_padding=4, filename_number_start='false',
                         show_history='false', show_history_by_prefix="true", embed_workflow="true",
                         show_previews="true", watermark="true",
-                        watermark_text="WAS Node Suite", watermark_font_size=36,
-                        watermark_position="bottom-right", watermark_rotation=0, watermark_opacity=50, watermark_margin=10):
+                        watermark_text="由AI生成", watermark_font_size=36,
+                        watermark_position="bottom-right", watermark_rotation=0, watermark_opacity=30, watermark_margin=10):
 
         delimiter = filename_delimiter
         number_padding = filename_number_padding
