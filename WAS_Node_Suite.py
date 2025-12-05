@@ -7294,6 +7294,82 @@ class WAS_Image_Save:
     def __init__(self):
         self.output_dir = comfy_paths.output_directory
         self.type = 'output'
+
+    def add_text_watermark(self, image, watermark_text="WAS Node Suite", font_size=48,
+                          position="bottom-right", rotation=0, opacity=50, margin=10):
+        """
+        给图片添加文字水印
+        """
+        from PIL import ImageDraw, ImageFont
+        
+        # 创建副本以避免修改原始图像
+        img = image.copy()
+        orig_mode = img.mode
+        
+        # 创建绘图对象
+        draw = ImageDraw.Draw(img)
+        
+        # 尝试加载指定字体，如果失败则使用默认字体
+        try:
+            font = ImageFont.truetype("custom_nodes\\was-node-suite-comfyui\\AlibabaPuHuiTi-3-45-Light.ttf", font_size)
+        except Exception as e:
+            print(e)
+            font = ImageFont.load_default()
+        
+        # 获取文本尺寸
+        try:
+            bbox = draw.textbbox((0, 0), watermark_text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+        except:
+            # 如果textbbox不可用，使用旧方法
+            try:
+                text_width, text_height = draw.textsize(watermark_text, font=font)
+            except:
+                text_width, text_height = font_size * len(watermark_text) // 2, font_size
+        
+        # 根据位置计算水印坐标
+        img_width, img_height = img.size
+        
+        if position == "top-left":
+            x, y = margin, margin
+        elif position == "top-right":
+            x, y = img_width - text_width - margin, margin
+        elif position == "bottom-left":
+            x, y = margin, img_height - text_height - margin
+        elif position == "bottom-right":
+            x, y = img_width - text_width - margin, img_height - text_height - margin
+        elif position == "center":
+            x, y = (img_width - text_width) // 2, (img_height - text_height) // 2
+        else:  # 默认为右下角
+            x, y = img_width - text_width - margin, img_height - text_height - margin
+        
+        alpha = int(255 * opacity / 100)
+        sw = max(1, font_size // 24)
+        # 应用水印旋转
+        if rotation != 0:
+            # 创建一个足够大的透明图像来容纳旋转后的文本
+            txt_img = Image.new('RGBA', (text_width * 2, text_height * 2), (0, 0, 0, 0))
+            txt_draw = ImageDraw.Draw(txt_img)
+            for dx, dy in [(-sw, 0), (sw, 0), (0, -sw), (0, sw), (-sw, -sw), (-sw, sw), (sw, -sw), (sw, sw)]:
+                txt_draw.text((text_width // 2 + dx, text_height // 2 + dy), watermark_text, font=font, fill=(0, 0, 0, alpha))
+            txt_draw.text((text_width // 2, text_height // 2), watermark_text, font=font, fill=(255, 255, 255, alpha))
+            txt_img = txt_img.rotate(rotation, expand=1)
+            # 将旋转后的文本粘贴到原图上
+            img.paste(txt_img, (x - text_width // 2, y - text_height // 2), txt_img)
+        else:
+            overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
+            overlay_draw = ImageDraw.Draw(overlay)
+            for dx, dy in [(-sw, 0), (sw, 0), (0, -sw), (0, sw), (-sw, -sw), (-sw, sw), (sw, -sw), (sw, sw)]:
+                overlay_draw.text((x + dx, y + dy), watermark_text, font=font, fill=(0, 0, 0, alpha))
+            overlay_draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, alpha))
+            base = img.convert('RGBA') if img.mode != 'RGBA' else img
+            img = Image.alpha_composite(base, overlay)
+            if orig_mode != 'RGBA':
+                img = img.convert(orig_mode)
+        
+        return img
+
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -7314,6 +7390,15 @@ class WAS_Image_Save:
                 "show_history_by_prefix": (["true", "false"],),
                 "embed_workflow": (["true", "false"],),
                 "show_previews": (["true", "false"],),
+                "watermark": (["true", "false"],),
+            },
+            "optional": {
+                "watermark_text": ("STRING", {"default": "WAS Node Suite", "multiline": False}),
+                "watermark_font_size": ("INT", {"default": 36, "min": 1, "max": 256, "step": 1}),
+                "watermark_position": (["bottom-right", "top-left", "top-right", "bottom-left", "center"],),
+                "watermark_rotation": ("INT", {"default": 0, "min": -360, "max": 360, "step": 1}),
+                "watermark_opacity": ("INT", {"default": 50, "min": 0, "max": 100, "step": 1}),
+                "watermark_margin": ("INT", {"default": 10, "min": 0, "max": 512, "step": 1}),
             },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
@@ -7333,7 +7418,9 @@ class WAS_Image_Save:
                         extension='png', dpi=96, quality=100, optimize_image="true", lossless_webp="false", prompt=None, extra_pnginfo=None,
                         overwrite_mode='false', filename_number_padding=4, filename_number_start='false',
                         show_history='false', show_history_by_prefix="true", embed_workflow="true",
-                        show_previews="true"):
+                        show_previews="true", watermark="true",
+                        watermark_text="WAS Node Suite", watermark_font_size=36,
+                        watermark_position="bottom-right", watermark_rotation=0, watermark_opacity=50, watermark_margin=10):
 
         delimiter = filename_delimiter
         number_padding = filename_number_padding
@@ -7401,6 +7488,18 @@ class WAS_Image_Save:
         for image in images:
             i = 255. * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+            
+            # 如果启用了水印，则添加文字水印
+            if watermark == "true":
+                img = self.add_text_watermark(
+                    img, 
+                    watermark_text=watermark_text,
+                    font_size=watermark_font_size,
+                    position=watermark_position,
+                    rotation=watermark_rotation,
+                    opacity=watermark_opacity,
+                    margin=watermark_margin
+                )
 
             # Delegate metadata/pnginfo
             if extension == 'webp':
