@@ -7294,6 +7294,21 @@ class WAS_Image_Save:
     def __init__(self):
         self.output_dir = comfy_paths.output_directory
         self.type = 'output'
+    
+    def add_meta(self, meta_data_json: dict) -> PngInfo:
+        metadata = PngInfo()
+        six_digit_str1 = ''.join(random.choices('0123456789', k=6))
+        six_digit_str2 = ''.join(random.choices('0123456789', k=6))
+        metadata.add_text("AIGC", json.dumps({
+            "Label": "1",
+            "ContentProducer": "001191440106MAC40YFHXU20251209",
+            "ProduceID": meta_data_json["task_id"],
+            "ReserveCode1": six_digit_str1 + meta_data_json["username"] + six_digit_str2,
+            "Propagator": "001191440106MAC40YFHXU20251209",
+            "PropagatorID": meta_data_json["task_id"],
+            "ReserveCode2": six_digit_str1 + meta_data_json["username"] + six_digit_str2,
+        }))
+        return metadata
 
     def add_text_watermark(self, image, watermark_text="WAS Node Suite", font_size=48,
                           position="bottom-right", rotation=0, opacity=50, margin=10):
@@ -7390,6 +7405,7 @@ class WAS_Image_Save:
                 "show_history_by_prefix": (["true", "false"],),
                 "embed_workflow": (["true", "false"],),
                 "show_previews": (["true", "false"],),
+                "meta_data": ("STRING", ),
                 # "watermark": (["true", "false"],),
             },
             # "optional": {
@@ -7418,7 +7434,7 @@ class WAS_Image_Save:
                         extension='png', dpi=96, quality=100, optimize_image="true", lossless_webp="false", prompt=None, extra_pnginfo=None,
                         overwrite_mode='false', filename_number_padding=4, filename_number_start='false',
                         show_history='false', show_history_by_prefix="true", embed_workflow="true",
-                        show_previews="true", watermark="true",
+                        show_previews="true", meta_data="", watermark="true",
                         watermark_text="由AI生成", watermark_font_size=36,
                         watermark_position="bottom-right", watermark_rotation=0, watermark_opacity=30, watermark_margin=10):
 
@@ -7516,7 +7532,8 @@ class WAS_Image_Save:
                     img_exif[0x010e] = "Workflow:" + workflow_metadata
                 exif_data = img_exif.tobytes()
             else:
-                metadata = PngInfo()
+                meta_data_json = json.loads(meta_data)
+                metadata: PngInfo = self.add_meta(meta_data_json)
                 if embed_workflow == 'true':
                     if prompt is not None:
                         metadata.add_text("prompt", json.dumps(prompt))
