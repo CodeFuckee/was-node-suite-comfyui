@@ -7315,21 +7315,35 @@ class WAS_Image_Save:
         """
         给图片添加文字水印
         """
-        from PIL import ImageDraw, ImageFont
+        from PIL import ImageDraw, ImageFont, Image
         
         # 创建副本以避免修改原始图像
         img = image.copy()
         orig_mode = img.mode
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+            
+        img_width, img_height = img.size
+        
+        # 动态调整字体大小
+        # 假设 font_size 是针对 1024px 图片的基准
+        scale_factor = max(img_width, img_height) / 1024.0
+        actual_font_size = int(font_size * scale_factor)
+        actual_font_size = max(16, actual_font_size)
+        
+        margin = int(margin * scale_factor)
         
         # 创建绘图对象
         draw = ImageDraw.Draw(img)
         
         # 尝试加载指定字体，如果失败则使用默认字体
         try:
-            font = ImageFont.truetype("custom_nodes\\was-node-suite-comfyui\\AlibabaPuHuiTi-3-45-Light.ttf", font_size)
+            font = ImageFont.truetype("custom_nodes\\was-node-suite-comfyui\\AlibabaPuHuiTi-3-45-Light.ttf", actual_font_size)
         except Exception as e:
-            print(e)
-            font = ImageFont.load_default()
+            try:
+                font = ImageFont.truetype("arial.ttf", actual_font_size)
+            except:
+                font = ImageFont.load_default()
         
         # 获取文本尺寸
         try:
@@ -7341,47 +7355,53 @@ class WAS_Image_Save:
             try:
                 text_width, text_height = draw.textsize(watermark_text, font=font)
             except:
-                text_width, text_height = font_size * len(watermark_text) // 2, font_size
+                text_width, text_height = actual_font_size * len(watermark_text) // 2, actual_font_size
+        
+        # 计算背景框尺寸
+        padding_x = int(actual_font_size * 0.4)
+        padding_y = int(actual_font_size * 0.2)
+        box_width = text_width + padding_x * 2
+        box_height = text_height + padding_y * 2
+        
+        # 创建水印图层
+        wm_img = Image.new('RGBA', (box_width, box_height), (0, 0, 0, 0))
+        wm_draw = ImageDraw.Draw(wm_img)
+        
+        # 绘制白底
+        bg_alpha = int(255 * opacity / 100)
+        wm_draw.rectangle((0, 0, box_width, box_height), fill=(255, 255, 255, bg_alpha))
+        
+        # 绘制黑字
+        try:
+            wm_draw.text((box_width // 2, box_height // 2), watermark_text, font=font, fill=(0, 0, 0, 255), anchor="mm")
+        except:
+            wm_draw.text((padding_x, padding_y), watermark_text, font=font, fill=(0, 0, 0, 255))
+        
+        # 应用水印旋转
+        if rotation != 0:
+            wm_img = wm_img.rotate(rotation, expand=True)
+            
+        wm_w, wm_h = wm_img.size
         
         # 根据位置计算水印坐标
-        img_width, img_height = img.size
-        
         if position == "top-left":
             x, y = margin, margin
         elif position == "top-right":
-            x, y = img_width - text_width - margin, margin
+            x, y = img_width - wm_w - margin, margin
         elif position == "bottom-left":
-            x, y = margin, img_height - text_height - margin
+            x, y = margin, img_height - wm_h - margin
         elif position == "bottom-right":
-            x, y = img_width - text_width - margin, img_height - text_height - margin
+            x, y = img_width - wm_w - margin, img_height - wm_h - margin
         elif position == "center":
-            x, y = (img_width - text_width) // 2, (img_height - text_height) // 2
+            x, y = (img_width - wm_w) // 2, (img_height - wm_h) // 2
         else:  # 默认为右下角
-            x, y = img_width - text_width - margin, img_height - text_height - margin
+            x, y = img_width - wm_w - margin, img_height - wm_h - margin
         
-        alpha = int(255 * opacity / 100)
-        sw = max(1, font_size // 24)
-        # 应用水印旋转
-        if rotation != 0:
-            # 创建一个足够大的透明图像来容纳旋转后的文本
-            txt_img = Image.new('RGBA', (text_width * 2, text_height * 2), (0, 0, 0, 0))
-            txt_draw = ImageDraw.Draw(txt_img)
-            for dx, dy in [(-sw, 0), (sw, 0), (0, -sw), (0, sw), (-sw, -sw), (-sw, sw), (sw, -sw), (sw, sw)]:
-                txt_draw.text((text_width // 2 + dx, text_height // 2 + dy), watermark_text, font=font, fill=(0, 0, 0, alpha))
-            txt_draw.text((text_width // 2, text_height // 2), watermark_text, font=font, fill=(255, 255, 255, alpha))
-            txt_img = txt_img.rotate(rotation, expand=1)
-            # 将旋转后的文本粘贴到原图上
-            img.paste(txt_img, (x - text_width // 2, y - text_height // 2), txt_img)
-        else:
-            overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
-            overlay_draw = ImageDraw.Draw(overlay)
-            for dx, dy in [(-sw, 0), (sw, 0), (0, -sw), (0, sw), (-sw, -sw), (-sw, sw), (sw, -sw), (sw, sw)]:
-                overlay_draw.text((x + dx, y + dy), watermark_text, font=font, fill=(0, 0, 0, alpha))
-            overlay_draw.text((x, y), watermark_text, font=font, fill=(255, 255, 255, alpha))
-            base = img.convert('RGBA') if img.mode != 'RGBA' else img
-            img = Image.alpha_composite(base, overlay)
-            if orig_mode != 'RGBA':
-                img = img.convert(orig_mode)
+        # 粘贴水印
+        img.paste(wm_img, (int(x), int(y)), wm_img)
+            
+        if orig_mode != 'RGBA':
+            img = img.convert(orig_mode)
         
         return img
 
