@@ -7426,16 +7426,16 @@ class WAS_Image_Save:
                 "embed_workflow": (["true", "false"],),
                 "show_previews": (["true", "false"],),
                 "meta_data": ("STRING", ),
-                # "watermark": (["true", "false"],),
             },
-            # "optional": {
-            #     "watermark_text": ("STRING", {"default": "WAS Node Suite", "multiline": False}),
-            #     "watermark_font_size": ("INT", {"default": 36, "min": 1, "max": 256, "step": 1}),
-            #     "watermark_position": (["bottom-right", "top-left", "top-right", "bottom-left", "center"],),
-            #     "watermark_rotation": ("INT", {"default": 0, "min": -360, "max": 360, "step": 1}),
-            #     "watermark_opacity": ("INT", {"default": 50, "min": 0, "max": 100, "step": 1}),
-            #     "watermark_margin": ("INT", {"default": 10, "min": 0, "max": 512, "step": 1}),
-            # },
+            "optional": {
+                "watermark": ("STRING", {"default": 'true'})
+                # "watermark_text": ("STRING", {"default": "WAS Node Suite", "multiline": False}),
+                # "watermark_font_size": ("INT", {"default": 36, "min": 1, "max": 256, "step": 1}),
+                # "watermark_position": (["bottom-right", "top-left", "top-right", "bottom-left", "center"],),
+                # "watermark_rotation": ("INT", {"default": 0, "min": -360, "max": 360, "step": 1}),
+                # "watermark_opacity": ("INT", {"default": 50, "min": 0, "max": 100, "step": 1}),
+                # "watermark_margin": ("INT", {"default": 10, "min": 0, "max": 512, "step": 1}),
+            },
             "hidden": {
                 "prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"
             },
