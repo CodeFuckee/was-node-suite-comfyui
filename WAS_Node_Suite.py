@@ -7310,8 +7310,7 @@ class WAS_Image_Save:
         }))
         return metadata
 
-    def add_text_watermark(self, image, watermark_text="WAS Node Suite", font_size=48,
-                          position="bottom-right", rotation=0, opacity=50, margin=10):
+    def add_text_watermark(self, image, watermark_text="WAS Node Suite", font_size=48, position="bottom-right", rotation=0, opacity=50, margin=10):
         """
         给图片添加文字水印
         """
@@ -7566,10 +7565,13 @@ class WAS_Image_Save:
             if overwrite_mode == 'prefix_as_filename':
                 file = f"{filename_prefix}{file_extension}"
             else:
+                now = datetime.datetime.now()
+                time_str = now.strftime("%H_%M_%S_") + f"{now.microsecond // 1000:03d}"
+                rand_str = ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=6))
                 if filename_number_start == 'true':
-                    file = f"{counter:0{number_padding}}{delimiter}{filename_prefix}{file_extension}"
+                    file = f"{counter:0{number_padding}}{delimiter}{filename_prefix}{time_str}{rand_str}{file_extension}"
                 else:
-                    file = f"{filename_prefix}{delimiter}{counter:0{number_padding}}{file_extension}"
+                    file = f"{filename_prefix}{delimiter}{counter:0{number_padding}}{time_str}{rand_str}{file_extension}"
                 if os.path.exists(os.path.join(output_path, file)):
                     counter += 1
 
