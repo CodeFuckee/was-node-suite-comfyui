@@ -7569,9 +7569,9 @@ class WAS_Image_Save:
                 time_str = now.strftime("%H_%M_%S_") + f"{now.microsecond // 1000:03d}"
                 rand_str = ''.join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=6))
                 if filename_number_start == 'true':
-                    file = f"{counter:0{number_padding}}{delimiter}{filename_prefix}{time_str}{rand_str}{file_extension}"
+                    file = f"{counter:0{number_padding}}{delimiter}{filename_prefix}{delimiter}{time_str}{delimiter}{rand_str}{file_extension}"
                 else:
-                    file = f"{filename_prefix}{delimiter}{counter:0{number_padding}}{time_str}{rand_str}{file_extension}"
+                    file = f"{filename_prefix}{delimiter}{counter:0{number_padding}}{delimiter}{time_str}{delimiter}{rand_str}{file_extension}"
                 if os.path.exists(os.path.join(output_path, file)):
                     counter += 1
 
